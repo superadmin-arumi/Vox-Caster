@@ -1,0 +1,12 @@
+{
+  "name": "Vox-Caster",
+  "short_name": "Vox-Caster",
+  "description": "Field-relay of the Cult Mechanicus — renders speech into binharic screech and canticle.",
+  "display": "standalone",
+  "background_color": "#0b0908",
+  "theme_color": "#0b0908",
+  "start_url": "vox-caster.html",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
