@@ -37,7 +37,16 @@
   .hrow h1{padding-right:92px;font-size:23px;white-space:nowrap}
   .hemblem{width:60px;height:60px;flex:0 0 auto;display:block}
   .cogline{height:8px;margin-top:22px;background:repeating-linear-gradient(90deg,var(--line) 0 14px,transparent 14px 22px);opacity:.55;border-radius:2px}
-  #status{height:20px;overflow:hidden;color:var(--dim);font-size:12.5px;letter-spacing:.08em;margin-top:6px;white-space:nowrap}
+  #status{height:20px;overflow:hidden;color:var(--dim);font-size:12.5px;letter-spacing:.08em;margin-top:6px;white-space:nowrap;padding-right:76px}
+  .verstamp{position:absolute;right:16px;bottom:10px;color:var(--brass);font-size:10px;letter-spacing:.18em;opacity:.85}
+  .verline{height:16px;overflow:hidden;text-align:center;color:var(--faint);font-size:9.5px;letter-spacing:.22em;margin-top:14px}
+  #spread{
+    display:block;margin:16px auto 0;height:46px;padding:0 26px;cursor:pointer;
+    border:1px solid var(--brass);border-radius:999px;background:var(--panel2);
+    color:var(--brass);font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;
+  }
+  #spread small{display:block;font-size:9px;color:var(--faint);letter-spacing:.06em}
+  #spread:active{transform:translateY(1px)}
   #status.err{color:var(--red)}
   #status.on{color:var(--green)}
   #archbtn{
@@ -197,10 +206,11 @@
       </svg>
       <div>
         <h1>VOX-<span>CASTER</span></h1>
-        <div class="kicker">ADEPTUS MECHANICUS · MK III</div>
+        <div class="kicker">ADEPTUS MECHANICUS</div>
       </div>
     </div>
     <div id="status" class="err">MACHINE SPIRIT DORMANT — CODE BLOCKED</div>
+    <span class="verstamp" id="verstamp"></span>
   </header>
 
   <div class="card">
@@ -244,13 +254,15 @@
   <div id="readout"><span class="dimline">— no transmission yet —</span></div>
 
   <div class="cogline" aria-hidden="true"></div>
+  <button id="spread">⇗ SPREAD THE CREED<small>share this relay with fellow adepts</small></button>
+  <div class="verline" id="verline"></div>
   <footer>++ THE OMNISSIAH HEARS ALL FREQUENCIES ++</footer>
 </div>
 
 <!-- ================= ARCHIVUM OVERLAY ================= -->
 <div id="arch" role="dialog" aria-modal="true" aria-label="Archivum record">
   <div class="arch-in">
-    <div class="arch-top"><b><svg viewBox="0 0 240 240" style="width:24px;height:24px;vertical-align:-6px;margin-right:7px"><use href="#emb"/></svg>++ ARCHIVUM RECORD · VC-01 ++</b><button id="archclose">✕ RETURN</button></div>
+    <div class="arch-top"><b><svg viewBox="-8 -8 256 256" style="width:24px;height:24px;vertical-align:-6px;margin-right:7px"><use href="#emb"/></svg>++ VC-01 · <span id="verarch"></span> ++</b><button id="archclose">✕ RETURN</button></div>
 
     <h3>THE DEVICE</h3>
     <p>Sanctioned field-relay of the Cult Mechanicus, pattern VC-01. By the grace of the Omnissiah it renders the crude speech of the flesh into the true tongues of the Machine — and, by the reception rites, renders them back.</p>
@@ -304,6 +316,9 @@
    ============================================================ */
 
 /* ---------------- CONFIG ---------------- */
+// ⚙ BUMP THESE TWO LINES EVERY RELEASE — they feed every version display
+const VERSION="MK III.2";
+const CONSECRATED="2026.08.17";
 const F0=2080,F1=3260,BIT=0.016,PRE=16;
 const SCALE=[73.42,87.31,98.00,110.00,130.81,146.83]; // D2 F2 G2 A2 C3 D3
 const FORMANTS={a:[600,1040,2250],e:[400,1620,2400],i:[250,1750,2600],o:[400,750,2400],u:[350,600,2400]};
@@ -1008,8 +1023,25 @@ relicFile.addEventListener("change",async()=>{
 archBtn.addEventListener("click",()=>{arch.classList.add("open");});
 archClose.addEventListener("click",()=>{arch.classList.remove("open");});
 
+/* ---------------- SPREAD THE CREED (share the app itself) ---------------- */
+$("spread").addEventListener("click",async()=>{
+  const url=location.href.split(/[?#]/)[0];
+  const text="++ The Omnissiah's vox-relay stands open to all adepts. Speak, and be heard in the true tongues of the Machine. ++";
+  try{
+    if(navigator.share){
+      try{await navigator.share({title:"Vox-Caster",text,url});return;}
+      catch(e){if(e&&e.name==="AbortError")return;}
+    }
+    await navigator.clipboard.writeText(text+"\n"+url);
+    setStatus("RELAY LINK COPIED TO DATA-SLATE","on");
+  }catch(e){setStatus("SPREADING RITE FAILED","err");}
+});
+
 /* ---------------- BOOT ---------------- */
-const BOOT=["RITE OF ACTIVATION…","MACHINE SPIRIT: APPEASED","AWAITING INPUT"];
+$("verstamp").textContent=VERSION;
+$("verarch").textContent=VERSION;
+$("verline").textContent="++ "+VERSION+" · CONSECRATED "+CONSECRATED+" ++";
+const BOOT=["RITE OF ACTIVATION…","MACHINE SPIRIT: APPEASED · "+VERSION,"AWAITING INPUT"];
 BOOT.forEach((line,i)=>setTimeout(()=>setStatus(line,i===2?"":"on"),450*i));
 
 /* ---------------- TEST HOOKS (harmless in normal use) ---------------- */
