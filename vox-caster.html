@@ -27,12 +27,19 @@
 
   header{border:1px solid var(--line);background:var(--panel);padding:16px;border-radius:6px;position:relative;overflow:hidden}
   header::before{content:"⚙";position:absolute;right:-24px;top:-34px;font-size:130px;opacity:.06;color:var(--brass)}
-  .kicker{color:var(--red);font-size:11px;letter-spacing:.25em}
+  .kicker{color:var(--red);font-size:11px;letter-spacing:.25em;padding-right:104px}
   h1{font-size:26px;letter-spacing:.06em;margin-top:2px}
   h1 span{color:var(--brass)}
   #status{height:20px;overflow:hidden;color:var(--dim);font-size:12.5px;letter-spacing:.08em;margin-top:6px;white-space:nowrap}
   #status.err{color:var(--red)}
   #status.on{color:var(--green)}
+  #archbtn{
+    position:absolute;top:12px;right:12px;z-index:2;
+    border:1px solid var(--brass);border-radius:999px;background:var(--panel2);
+    color:var(--brass);font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    padding:8px 13px;cursor:pointer;
+  }
+  #archbtn:active{transform:translateY(1px)}
 
   .card{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:14px;margin-top:12px}
   label.head{display:block;font-size:11px;letter-spacing:.22em;color:var(--red);margin-bottom:8px}
@@ -75,12 +82,14 @@
   }
   .btn:active{transform:translateY(1px)}
   .btn.stop{background:var(--panel2);border-color:var(--brass);color:var(--brass)}
-  .row2{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .btn2{
     border:1px solid var(--line);background:var(--panel2);color:var(--dim);border-radius:999px;
-    font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;height:42px;cursor:pointer;
+    font-family:var(--mono);font-size:12px;letter-spacing:.1em;height:42px;cursor:pointer;
+    overflow:hidden;white-space:nowrap;
   }
   .btn2.ready{border-color:var(--brass);color:var(--brass)}
+  .btn2.live{border-color:var(--green);color:var(--green)}
   .btn2:active{transform:translateY(1px)}
 
   .vizbox{position:relative;height:96px;border:1px solid var(--line);border-radius:6px;background:var(--bg);overflow:hidden;margin-top:12px}
@@ -99,15 +108,36 @@
   #readout .lit{color:var(--bone)}
   #readout .hdr{color:var(--brass);letter-spacing:.12em}
   #readout .dimline{color:var(--faint)}
+  #readout .dec{color:var(--green)}
 
   footer{text-align:center;color:var(--faint);font-size:10px;letter-spacing:.28em;margin-top:22px}
+
+  /* ---- Archivum overlay ---- */
+  #arch{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;display:none}
+  #arch.open{display:block}
+  .arch-in{max-width:560px;margin:0 auto;padding:14px 14px 60px}
+  .arch-top{position:sticky;top:0;background:var(--bg);padding:8px 0 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
+  .arch-top b{color:var(--brass);font-size:13px;letter-spacing:.22em;font-weight:normal}
+  #archclose{border:1px solid var(--red);border-radius:999px;background:var(--panel2);color:var(--red);font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:9px 14px;cursor:pointer}
+  #archclose:active{transform:translateY(1px)}
+  .arch-in h3{color:var(--red);font-size:12px;letter-spacing:.2em;margin:20px 0 8px}
+  .arch-in h3::before{content:"++ ";color:var(--faint)}
+  .arch-in h3::after{content:" ++";color:var(--faint)}
+  .arch-in p,.arch-in li{color:var(--bone);font-size:13.5px;line-height:1.65}
+  .arch-in em{color:var(--brass);font-style:normal}
+  .arch-in ul{list-style:none;margin:6px 0}
+  .arch-in li{padding:4px 0 4px 16px;position:relative}
+  .arch-in li::before{content:"›";position:absolute;left:2px;color:var(--red)}
+  .arch-lit{color:var(--dim);text-align:center;letter-spacing:.14em;font-size:12px;margin-top:26px}
+  .arch-fine{color:var(--faint);font-size:10.5px;line-height:1.5;margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <div class="kicker">ADEPTUS MECHANICUS · FIELD UNIT</div>
+    <button id="archbtn" aria-label="Open the Archivum record">✠ ARCHIVUM</button>
+    <div class="kicker">ADEPTUS MECHANICUS · FIELD UNIT · MK II</div>
     <h1>VOX-<span>CASTER</span></h1>
     <div id="status" class="err">MACHINE SPIRIT DORMANT — CODE BLOCKED</div>
   </header>
@@ -137,7 +167,13 @@
 
   <button class="btn" id="transmit">⛧ &nbsp;TRANSMIT</button>
   <div class="row2">
-    <button class="btn2" id="save" disabled>SAVE AUDIO (.WAV)</button>
+    <button class="btn2" id="save" disabled>SAVE .WAV</button>
+    <button class="btn2" id="share" disabled>⇗ SHARE</button>
+  </div>
+  <div class="row2">
+    <button class="btn2 ready" id="listen">◉ LISTEN</button>
+    <button class="btn2 ready" id="relic">⇪ DECODE RELIC</button>
+    <input type="file" id="relicfile" accept="audio/*,.wav" style="display:none">
   </div>
 
   <div class="vizbox" id="vizbox">
@@ -149,23 +185,72 @@
   <footer>++ THE OMNISSIAH HEARS ALL FREQUENCIES ++</footer>
 </div>
 
+<!-- ================= ARCHIVUM OVERLAY ================= -->
+<div id="arch" role="dialog" aria-modal="true" aria-label="Archivum record">
+  <div class="arch-in">
+    <div class="arch-top"><b>++ ARCHIVUM RECORD · VC-01 ++</b><button id="archclose">✕ RETURN</button></div>
+
+    <h3>THE DEVICE</h3>
+    <p>Sanctioned field-relay of the Cult Mechanicus, pattern VC-01. By the grace of the Omnissiah it renders the crude speech of the flesh into the true tongues of the Machine — and, by the reception rites, renders them back.</p>
+
+    <h3>RITES OF TRANSMISSION</h3>
+    <ul>
+      <li><em>SCREECH — the Binharic Blurt.</em> Thy words are broken unto their component octets and cast as twin-tone machine-song. No syllable is lost: what is encoded may be decoded again.</li>
+      <li><em>CHANT — the Canticle.</em> The message is translated into the liturgy of the Adeptus and intoned by a choir of synthesised voice-boxes upon a low drone, consecrated with cathedral echo.</li>
+      <li><em>VOX-CAST — the Union of Tongues.</em> Canticle and blurt interleaved: prayer punctuated by bursts of pure data.</li>
+    </ul>
+    <p>The <em>CORRUPTION</em> dial governs how far the transmission strays from the clarity of the shrine toward the howling of the storm-scarred vox. Know this: at the highest corruption, even the reception rites may fail to part the words from the warp-noise.</p>
+
+    <h3>RITES OF RECEPTION</h3>
+    <ul>
+      <li><em>LISTEN.</em> This slate opens its ear. Let another slate perform the Screech nearby — volume raised, held close — then press STOP, and the machine-song shall be rendered back into words.</li>
+      <li><em>DECODE RELIC.</em> Present a saved transmission (.wav) and its words shall be recovered, unfailing.</li>
+    </ul>
+
+    <h3>RITES OF OPERATION</h3>
+    <ul>
+      <li>Inscribe thy message upon the input slate. <em>(240 runes maximum)</em></li>
+      <li>Select the rite. Press <em>TRANSMIT</em>. Raise the volume of thy device.</li>
+      <li>Press <em>SAVE .WAV</em> to forge the transmission into a portable relic, or <em>SHARE</em> to send it unto thy fellow adepts.</li>
+    </ul>
+
+    <h3>INSTALLATION OF THE MACHINE SPIRIT</h3>
+    <p>Upon hand-slates of the Apple pattern: open this relay in Safari, invoke the <em>Share</em> rune, and select <em>Add to Home Screen</em>. The machine spirit shall thereafter dwell within thy device, requiring no further communion with the noosphere.</p>
+
+    <h3>TECH-ADEPT'S ANNOTATION</h3>
+    <p>All rites are performed within the browser by the Web Audio arts. No servitor-farms, no data-tithes, no registration of the flesh. The screech is a true encoding — UART-pattern framing over twin-tone FSK at 2080 and 3260 cycles — which is why one slate may hear another and know its words.</p>
+
+    <p class="arch-lit">THE FLESH IS WEAK. THE OMNISSIAH PROVIDES.</p>
+    <p class="arch-fine">A personal, non-commercial fan work. Not affiliated with, or endorsed by, Games Workshop. Warhammer 40,000 and associated marks are the property of Games Workshop Ltd.</p>
+  </div>
+</div>
+
 <script>
 'use strict';
 /* ============================================================
-   VOX-CASTER v0 — text → Adeptus Mechanicus transmission audio
-   Screech = real data: UART-style framing over 2-tone FSK
-   (14-bit alternating preamble, then per byte: start bit 0,
-   8 data bits LSB-first, stop bit 1). f0=2080Hz, f1=3260Hz,
-   16ms/bit. Interstitial shrieks sit in gaps BETWEEN bytes so
-   a future v1 decoder can ignore them. Deterministic: same
-   message + mode + corruption → identical audio.
+   VOX-CASTER MK II — text → Adeptus Mechanicus transmission audio
+   ------------------------------------------------------------
+   VOX PROTOCOL 1 (decoder-compatible):
+     Screech is a CONTINUOUS bitstream — 16-bit alternating
+     preamble (starting f0), then per byte: start bit 0, 8 data
+     bits LSB-first, stop bit 1. f0=2080Hz, f1=3260Hz, 16ms/bit.
+     Shrieks/static are overlaid OUT OF BAND (≥4200Hz sweeps) so
+     the bit clock never breaks. Deterministic: same message +
+     mode + corruption → identical audio.
+   Sections: CONFIG · RNG · LEXICON · TIMELINE · REALIZE ·
+   DECODER · WAV · UI · SHARE · RECEPTION · ARCHIVUM · HOOKS
    ============================================================ */
 
-// ---------- tiny deterministic RNG ----------
+/* ---------------- CONFIG ---------------- */
+const F0=2080,F1=3260,BIT=0.016,PRE=16;
+const SCALE=[73.42,87.31,98.00,110.00,130.81,146.83]; // D2 F2 G2 A2 C3 D3
+const FORMANTS={a:[600,1040,2250],e:[400,1620,2400],i:[250,1750,2600],o:[400,750,2400],u:[350,600,2400]};
+
+/* ---------------- RNG (deterministic) ---------------- */
 function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 function rng(seed){let s=seed>>>0||1;return function(){s^=s<<13;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
 
-// ---------- liturgy recast (lexicon + honorific) ----------
+/* ---------------- LEXICON / LITURGY ---------------- */
 const LEX=[
   ["i\\s*am|i'm|\\bim\\b","this vessel is"],
   ["\\bi\\b","this adept"],["\\bmy\\b","this adept's"],["\\bme\\b","this adept"],
@@ -209,38 +294,30 @@ function recast(text){
   t+=" "+HONORIFICS[hash(text)%HONORIFICS.length];
   return t;
 }
-
-// ---------- timeline builder (pure & deterministic) ----------
-const F0=2080,F1=3260,BIT=0.016;
-const SCALE=[73.42,87.31,98.00,110.00,130.81,146.83]; // D2 F2 G2 A2 C3 D3
-const FORMANTS={a:[600,1040,2250],e:[400,1620,2400],i:[250,1750,2600],o:[400,750,2400],u:[350,600,2400]};
 function vowelOf(s){const m=s.match(/[aeiouy]/);const v=m?m[0]:"o";return v==="y"?"i":v;}
 function bytesOf(s){return Array.from(new TextEncoder().encode(s));}
 
+/* ---------------- TIMELINE (pure & deterministic) ---------------- */
 function buildTimeline(text,mode,corr){
   const R=rng(hash(text+"|"+mode+"|"+corr));
-  const tl={mode,corr,segs:[],env:[],syls:[],shrieks:[],pings:[],crackles:[],drone:null,dur:0,transcript:"",liturgy:""};
+  const tl={mode,corr,segs:[],env:[],syls:[],shrieks:[],pings:[],crackles:[],drone:null,bursts:[],dur:0,transcript:"",liturgy:""};
   let t=0.12;
 
   function screechBlock(str,tt){
     const bytes=bytesOf(str);
-    tl.env.push({t:tt,g:0},{t:tt+0.02,g:1});
-    for(let i=0;i<14;i++){tl.segs.push({t:tt,f:i%2?F1:F0});tt+=BIT;}
+    if(!bytes.length) return tt;
+    tl.env.push({t:tt-0.004,g:0},{t:tt+0.006,g:1});
+    for(let i=0;i<PRE;i++){tl.segs.push({t:tt,f:i%2?F1:F0});tt+=BIT;}
     for(let bi=0;bi<bytes.length;bi++){
       const by=bytes[bi];
       tl.segs.push({t:tt,f:F0});tt+=BIT;                 // start bit
       for(let k=0;k<8;k++){tl.segs.push({t:tt,f:((by>>k)&1)?F1:F0});tt+=BIT;}
       tl.segs.push({t:tt,f:F1});tt+=BIT;                 // stop bit
-      if(bi%7===6&&bi<bytes.length-1){                    // shriek in the gap
-        tl.env.push({t:tt,g:1},{t:tt+0.01,g:0});
-        const gap=0.09+R()*0.07;
-        tl.shrieks.push({t:tt+0.012,d:gap,f:2800+R()*1400});
-        tt+=gap+0.03;
-        tl.env.push({t:tt,g:0},{t:tt+0.01,g:1});
-      }
+      if(bi%7===6&&bi<bytes.length-1)                    // shriek OVERLAY, out of band
+        tl.shrieks.push({t:tt-0.02,d:0.12+R()*0.08,f:5600-R()*400});
     }
-    tl.env.push({t:tt,g:1},{t:tt+0.03,g:0});
-    return tt+0.08;
+    tl.env.push({t:tt,g:1},{t:tt+0.02,g:0});
+    return tt+0.06;
   }
 
   function chantBlock(part,tt){
@@ -264,6 +341,7 @@ function buildTimeline(text,mode,corr){
 
   if(mode==="screech"){
     t=screechBlock(text,t);
+    tl.bursts.push(text);
     const bytes=bytesOf(text);
     const bin=bytes.slice(0,8).map(b=>b.toString(2).padStart(8,"0")).join(" ");
     tl.transcript=bin+(bytes.length>8?" …":"")+"  ["+bytes.length+" bytes cast]";
@@ -282,6 +360,7 @@ function buildTimeline(text,mode,corr){
       t=chantBlock(ph,t);
       parts.push(ph);
       const burst=ph.slice(0,14);
+      tl.bursts.push(burst);
       t=screechBlock(burst,t+0.06)+0.06;
       parts.push("▚▞▚▞▞▚▞▚");
     }
@@ -298,7 +377,7 @@ function buildTimeline(text,mode,corr){
   return tl;
 }
 
-// ---------- audio realization (shared by live + offline) ----------
+/* ---------------- REALIZE (shared live + offline) ---------------- */
 function driveCurve(k){
   const n=1024,c=new Float32Array(n),norm=Math.tanh(k);
   for(let i=0;i<n;i++){const x=i/(n-1)*2-1;c[i]=Math.tanh(k*x)/norm;}
@@ -320,7 +399,7 @@ function makeImpulse(ctx,dur,decay,R){
 }
 
 function realize(ctx,tl,dest,collect,t0){
-  const R=rng(hash("fx|"+tl.mode+"|"+tl.corr)); // deterministic fx randomness
+  const R=rng(hash("fx|"+tl.mode+"|"+tl.corr));
   const corr=tl.corr/100;
   const master=ctx.createGain();master.gain.value=0.9;
   const comp=ctx.createDynamicsCompressor();
@@ -329,11 +408,11 @@ function realize(ctx,tl,dest,collect,t0){
 
   const start=(node,at,stopAt)=>{node.start(at);if(stopAt)node.stop(stopAt);collect.push(node);};
 
-  // ---- SCREECH voice ----
+  // ---- SCREECH voice (continuous FSK bitstream) ----
   if(tl.segs.length){
     const osc=ctx.createOscillator();osc.type="square";
     const lfo=ctx.createOscillator();lfo.frequency.value=5.5;
-    const lfoG=ctx.createGain();lfoG.gain.value=corr*40;         // detune warble (cents)
+    const lfoG=ctx.createGain();lfoG.gain.value=corr*22;          // gentle warble (cents), decode-safe
     lfo.connect(lfoG);lfoG.connect(osc.detune);
     const drive=ctx.createWaveShaper();drive.curve=driveCurve(1.5+corr*5);drive.oversample="2x";
     const bp=ctx.createBiquadFilter();bp.type="bandpass";bp.frequency.value=2700;bp.Q.value=0.5;
@@ -346,13 +425,13 @@ function realize(ctx,tl,dest,collect,t0){
     start(osc,t0,t0+end);start(lfo,t0,t0+end);
   }
 
-  // ---- shrieks ----
+  // ---- shrieks (OUT OF BAND overlay: sweep stays ≥ ~4200Hz) ----
   for(const sh of tl.shrieks){
     const o=ctx.createOscillator();o.type="sawtooth";
-    o.frequency.setValueAtTime(sh.f+1000,t0+sh.t);
-    o.frequency.exponentialRampToValueAtTime(Math.max(300,sh.f-1500),t0+sh.t+sh.d);
+    o.frequency.setValueAtTime(sh.f,t0+sh.t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(4200,sh.f-1300),t0+sh.t+sh.d);
     const g=ctx.createGain();g.gain.setValueAtTime(0,t0+sh.t);
-    g.gain.linearRampToValueAtTime(0.10+corr*0.08,t0+sh.t+0.015);
+    g.gain.linearRampToValueAtTime(0.07+corr*0.06,t0+sh.t+0.015);
     g.gain.linearRampToValueAtTime(0,t0+sh.t+sh.d);
     o.connect(g);g.connect(master);
     start(o,t0+sh.t,t0+sh.t+sh.d+0.05);
@@ -397,14 +476,12 @@ function realize(ctx,tl,dest,collect,t0){
     }
     stack(0,0);stack(10,0.013);
 
-    // ring modulation for machine-warble
     const rm=ctx.createGain();rm.gain.value=1-(0.18+corr*0.30);
     const rmLfo=ctx.createOscillator();rmLfo.frequency.value=30+corr*26;
     const rmDepth=ctx.createGain();rmDepth.gain.value=0.18+corr*0.30;
     rmLfo.connect(rmDepth);rmDepth.connect(rm.gain);
     const shp=ctx.createWaveShaper();shp.curve=driveCurve(1.2+corr*1.6);
     chantBus.connect(rm);rm.connect(shp);
-    // dry + cathedral reverb
     const dry=ctx.createGain();dry.gain.value=0.6;
     const conv=ctx.createConvolver();conv.buffer=makeImpulse(ctx,2.4,2.6,rng(hash("verb")));
     const wet=ctx.createGain();wet.gain.value=0.5;
@@ -439,16 +516,17 @@ function realize(ctx,tl,dest,collect,t0){
     start(o,t0+p.t,t0+p.t+0.35);
   }
 
-  // ---- static bed + crackle ----
+  // ---- static bed + crackle (bed lowpassed below the data band) ----
   if(corr>0.02){
     const bed=ctx.createBufferSource();bed.buffer=makeNoiseBuf(ctx,1.2,R);bed.loop=true;
+    const blp=ctx.createBiquadFilter();blp.type="lowpass";blp.frequency.value=1400;
     const bg=ctx.createGain();
-    const lvl=corr*(tl.mode==="screech"?0.045:0.03);
+    const lvl=corr*(tl.mode==="screech"?0.05:0.03);
     bg.gain.setValueAtTime(0,t0);
     bg.gain.linearRampToValueAtTime(lvl,t0+0.15);
     bg.gain.setValueAtTime(lvl,t0+tl.dur-0.4);
     bg.gain.linearRampToValueAtTime(0,t0+tl.dur-0.05);
-    bed.connect(bg);bg.connect(master);
+    bed.connect(blp);blp.connect(bg);bg.connect(master);
     start(bed,t0,t0+tl.dur);
   }
   for(const c of tl.crackles){
@@ -459,7 +537,81 @@ function realize(ctx,tl,dest,collect,t0){
   }
 }
 
-// ---------- WAV encoding ----------
+/* ---------------- DECODER (Goertzel FSK, VOX PROTOCOL 1) ---------------- */
+function goertzel(x,off,N,f,sr){
+  const w=2*Math.PI*f/sr,c=2*Math.cos(w);let s1=0,s2=0;
+  for(let i=0;i<N;i++){const s0=x[off+i]+c*s1-s2;s2=s1;s1=s0;}
+  return s1*s1+s2*s2-c*s1*s2;
+}
+function decodeSamples(x,sr){
+  const win=Math.max(64,Math.round(sr*0.006)),hop=win>>1,hopT=hop/sr;
+  const n=Math.floor((x.length-win)/hop);
+  if(n<12)return{ok:false,text:"",parts:[]};
+  const s=new Float32Array(n),act=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const off=i*hop,e0=goertzel(x,off,win,F0,sr),e1=goertzel(x,off,win,F1,sr);
+    act[i]=e0+e1;s[i]=(e1-e0)/(e0+e1+1e-12);
+  }
+  const sorted=Array.from(act).sort((a,b)=>a-b);
+  const floor=sorted[Math.floor(n*0.05)]+1e-12,peak=sorted[n-1];   // 5th-percentile noise floor
+  if(peak<Math.max(1e-9,floor*8))return{ok:false,text:"",parts:[]};
+  const th=Math.max(floor*5,peak*0.04);
+  // active regions, bridging dropouts <30ms
+  const bridge=Math.max(1,Math.round(0.03/hopT)),regions=[];
+  let i=0;
+  while(i<n){
+    if(act[i]>th){
+      let j=i,last=i;
+      while(j<n){if(act[j]>th)last=j;if(j-last>bridge)break;j++;}
+      if((last-i)*hopT>PRE*BIT*0.8)regions.push([i,last]);
+      i=j+1;
+    }else i++;
+  }
+  const S=t=>{const idx=Math.round(t/hopT-0.5);return idx>=0&&idx<n?s[idx]:0;};
+  const bitVal=(t)=>{ // mean of s over the centre 50% of a bit starting at t
+    let sum=0,c=0;
+    for(let u=t+BIT*0.25;u<t+BIT*0.75;u+=hopT){sum+=S(u);c++;}
+    return c?sum/c:0;
+  };
+  const parts=[];
+  for(const [a,b] of regions){
+    const tA=a*hopT,tB=b*hopT+win/sr;
+    // brute-force phase: preamble alternates 0,1,0,1… (bit0=f0 → s<0)
+    let best=null;
+    for(let k=0;k<24;k++){
+      const ph=tA-BIT*0.5+(k/24)*BIT*2;   // search a two-bit window around region start
+      let score=0,strength=0;
+      for(let p=0;p<PRE;p++){
+        const v=bitVal(ph+p*BIT),want=p%2?1:-1;
+        if(v*want>0)score++;
+        strength+=Math.abs(v);
+      }
+      if(!best||score>best.score||(score===best.score&&strength>best.strength))
+        best={ph,score,strength};
+    }
+    if(!best||best.score<PRE-2)continue;
+    // read byte frames after the preamble
+    const bytes=[];let k=PRE,miss=0;
+    while(best.ph+(k+10)*BIT<=tB+BIT*0.5&&bytes.length<300){
+      const startB=bitVal(best.ph+k*BIT)>0?1:0;
+      const stopB=bitVal(best.ph+(k+9)*BIT)>0?1:0;
+      if(startB!==0||stopB!==1){if(++miss>=2)break;k+=10;continue;}
+      miss=0;
+      let by=0;
+      for(let d=0;d<8;d++)if(bitVal(best.ph+(k+1+d)*BIT)>0)by|=1<<d;
+      bytes.push(by);k+=10;
+    }
+    if(bytes.length){
+      try{
+        const txt=new TextDecoder("utf-8").decode(new Uint8Array(bytes)).replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g,"");
+        if(txt.trim())parts.push(txt);
+      }catch(e){}
+    }
+  }
+  return{ok:parts.length>0,text:parts.join(" "),parts};
+}
+
+/* ---------------- WAV ---------------- */
 function bufferToWav(buf){
   const n=buf.length,sr=buf.sampleRate,data=buf.getChannelData(0);
   const out=new ArrayBuffer(44+n*2),v=new DataView(out);
@@ -472,12 +624,14 @@ function bufferToWav(buf){
   return new Blob([out],{type:"audio/wav"});
 }
 
-// ---------- UI wiring ----------
+/* ---------------- UI CORE ---------------- */
 const $=id=>document.getElementById(id);
 const msgEl=$("msg"),countEl=$("count"),corrEl=$("corr"),corrvEl=$("corrv"),
-      statusEl=$("status"),transmitBtn=$("transmit"),saveBtn=$("save"),
-      readout=$("readout"),vizbox=$("vizbox"),viz=$("viz");
-let AC=null,analyser=null,mode="screech",playing=false,activeSources=[],endTimer=null,rafId=null,lastCast=null;
+      statusEl=$("status"),transmitBtn=$("transmit"),saveBtn=$("save"),shareBtn=$("share"),
+      listenBtn=$("listen"),relicBtn=$("relic"),relicFile=$("relicfile"),
+      readout=$("readout"),vizbox=$("vizbox"),viz=$("viz"),
+      arch=$("arch"),archBtn=$("archbtn"),archClose=$("archclose");
+let AC=null,analyser=null,mode="screech",playing=false,activeSources=[],endTimer=null,rafId=null,lastCast=null,mic=null,micTimer=null;
 
 function setStatus(txt,cls){statusEl.textContent=txt;statusEl.className=cls||"";}
 // iOS: ask for "playback" audio so the ring/silent switch doesn't mute us (iOS 17+)
@@ -488,6 +642,12 @@ function unlock(ctx){try{const b=ctx.createBuffer(1,1,22050);const s=ctx.createB
 // surface runtime errors on the status line so failures are visible, never silent
 window.addEventListener("error",e=>setStatus(("MACHINE SPIRIT ERROR: "+(e.message||"?")).slice(0,64),"err"));
 window.addEventListener("unhandledrejection",e=>setStatus(("MACHINE SPIRIT ERROR: "+((e.reason&&e.reason.message)||e.reason||"?")).slice(0,64),"err"));
+
+function ensureAC(){
+  if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();
+    analyser=AC.createAnalyser();analyser.fftSize=512;analyser.connect(AC.destination);}
+  return AC;
+}
 function updateCount(){countEl.textContent=msgEl.value.length+" / 240";}
 msgEl.addEventListener("input",updateCount);updateCount();
 corrEl.addEventListener("input",()=>{corrvEl.textContent=corrEl.value;});
@@ -503,10 +663,20 @@ function showTranscript(tl){
   const modeName={screech:"BINHARIC BLURT",chant:"CANTICLE",voxcast:"VOX-CAST"}[tl.mode];
   let html='<span class="hdr">++ '+modeName+" · CORRUPTION "+tl.corr+" ++</span><br>";
   if(tl.mode==="screech")html+=tl.transcript;
-  else if(tl.mode==="chant")html+='<span class="lit">'+tl.transcript+"</span>";
   else html+='<span class="lit">'+tl.transcript+"</span>";
   html+='<br><span class="dimline">++ END VOX ++</span>';
   readout.innerHTML=html;
+}
+function showDecoded(res){
+  if(res.ok){
+    readout.innerHTML='<span class="hdr">++ DECODED TRANSMISSION ++</span><br><span class="dec">'
+      +res.text.replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      +'</span><br><span class="dimline">++ END VOX ++</span>';
+    setStatus("MACHINE-SONG RENDERED UNTO WORDS","on");
+  }else{
+    readout.innerHTML='<span class="hdr">++ RECEPTION RITE ++</span><br><span class="dimline">no machine-song detected — move closer, raise the volume, lower corruption</span>';
+    setStatus("NO MACHINE-SONG DETECTED","err");
+  }
 }
 
 function drawViz(){
@@ -544,12 +714,12 @@ function stopTransmission(){
 transmitBtn.addEventListener("pointerdown",()=>{if(!playing)setStatus("SIGNAL RECEIVED…","on");});
 transmitBtn.addEventListener("click",async()=>{
   if(playing){stopTransmission();return;}
+  if(mic){setStatus("SILENCE THE LISTENING RITE FIRST","err");return;}
   const text=msgEl.value.trim();
   if(!text){setStatus("NO MESSAGE. THE MACHINE SPIRIT AWAITS.","err");return;}
   try{
     enablePlaybackSession();
-    if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();
-      analyser=AC.createAnalyser();analyser.fftSize=512;analyser.connect(AC.destination);}
+    ensureAC();
     unlock(AC);
     if(AC.state!=="running"){try{await AC.resume();}catch(e){}}
     if(AC.state==="suspended"){setStatus("AUDIO LOCKED BY DEVICE — TAP AGAIN","err");return;}
@@ -566,6 +736,7 @@ transmitBtn.addEventListener("click",async()=>{
     showTranscript(tl);
     setStatus("TRANSMITTING ++","on");
     saveBtn.disabled=false;saveBtn.classList.add("ready");
+    shareBtn.disabled=false;shareBtn.classList.add("ready");
     endTimer=setTimeout(()=>{
       playing=false;activeSources=[];
       transmitBtn.textContent="⛧  TRANSMIT";
@@ -574,12 +745,12 @@ transmitBtn.addEventListener("click",async()=>{
       setStatus("TRANSMISSION COMPLETE","");
     },(tl.dur+0.4)*1000);
   }catch(e){
-    setStatus("MACHINE SPIRIT DISPLEASED — RETRY","err");
+    setStatus(("MACHINE SPIRIT DISPLEASED: "+(e.message||"")).slice(0,64),"err");
     console.error(e);
   }
 });
 
-// ---------- offline render + save ----------
+/* ---------------- OFFLINE RENDER + SAVE ---------------- */
 function renderOffline(text,m,corr){
   const tl=buildTimeline(text,m,corr);
   const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
@@ -602,18 +773,130 @@ saveBtn.addEventListener("click",async()=>{
     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
     setStatus("AUDIO RELIC FORGED","on");
   }catch(e){setStatus("FORGING FAILED — RETRY","err");console.error(e);}
-  saveBtn.textContent="SAVE AUDIO (.WAV)";
+  saveBtn.textContent="SAVE .WAV";
 });
 
-// ---------- boot litany ----------
+/* ---------------- SHARE ---------------- */
+function shareText(){
+  const t=buildTimeline(lastCast.text,lastCast.mode,lastCast.corr);
+  const url=location.href.split(/[?#]/)[0];
+  return "++ VOX-CAST TRANSMISSION ++\n"+t.transcript+"\n++ END VOX ++\nCast via Vox-Caster: "+url;
+}
+shareBtn.addEventListener("click",async()=>{
+  if(!lastCast||shareBtn.disabled)return;
+  shareBtn.textContent="FORGING…";
+  const text=shareText();
+  let done=false;
+  try{
+    if(navigator.share){
+      // try sharing the audio relic itself alongside the text
+      try{
+        const buf=await renderOffline(lastCast.text,lastCast.mode,lastCast.corr);
+        const file=new File([bufferToWav(buf)],"vox-cast.wav",{type:"audio/wav"});
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+          await navigator.share({files:[file],text});done=true;
+        }
+      }catch(e){if(e&&e.name==="AbortError")done=true;}
+      if(!done){
+        try{await navigator.share({text});done=true;}
+        catch(e){if(e&&e.name==="AbortError")done=true;}
+      }
+    }
+    if(!done){
+      await navigator.clipboard.writeText(text);
+      setStatus("TRANSMISSION COPIED TO DATA-SLATE","on");
+    }
+  }catch(e){setStatus("SHARING RITE FAILED","err");}
+  shareBtn.textContent="⇗ SHARE";
+});
+
+/* ---------------- RECEPTION: LISTEN (mic) + DECODE RELIC (file) ---------------- */
+async function startListen(){
+  if(playing){setStatus("SILENCE THE TRANSMISSION FIRST","err");return;}
+  try{
+    enablePlaybackSession();
+    ensureAC();unlock(AC);
+    if(AC.state!=="running"){try{await AC.resume();}catch(e){}}
+    const stream=await navigator.mediaDevices.getUserMedia({
+      audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    const src=AC.createMediaStreamSource(stream);
+    const proc=AC.createScriptProcessor(4096,1,1);
+    const mute=AC.createGain();mute.gain.value=0;
+    const chunks=[];let total=0;
+    proc.onaudioprocess=e=>{
+      const d=e.inputBuffer.getChannelData(0);
+      chunks.push(new Float32Array(d));total+=d.length;
+      if(total>AC.sampleRate*30)stopListen();     // 30s cap
+    };
+    src.connect(proc);proc.connect(mute);mute.connect(AC.destination);
+    src.connect(analyser);
+    mic={stream,src,proc,mute,chunks,t0:performance.now(),get total(){return total;}};
+    listenBtn.textContent="■ STOP";listenBtn.classList.remove("ready");listenBtn.classList.add("live");
+    vizbox.classList.add("live");drawViz();
+    micTimer=setInterval(()=>{
+      if(mic)setStatus("RECEIVING… "+Math.floor((performance.now()-mic.t0)/1000)+"s — LET THE OTHER SLATE SCREECH","on");
+    },500);
+    setStatus("RECEIVING… 0s — LET THE OTHER SLATE SCREECH","on");
+  }catch(e){
+    setStatus(e&&e.name==="NotAllowedError"?"MIC RITE REFUSED — ALLOW MICROPHONE":"LISTENING RITE FAILED","err");
+  }
+}
+function stopListen(){
+  if(!mic)return;
+  const m=mic;mic=null;
+  if(micTimer){clearInterval(micTimer);micTimer=null;}
+  try{m.src.disconnect();m.proc.disconnect();m.mute.disconnect();}catch(e){}
+  try{m.stream.getTracks().forEach(t=>t.stop());}catch(e){}
+  stopViz();
+  listenBtn.textContent="◉ LISTEN";listenBtn.classList.remove("live");listenBtn.classList.add("ready");
+  const total=m.chunks.reduce((s,c)=>s+c.length,0);
+  if(total<AC.sampleRate*0.5){setStatus("TOO BRIEF — HOLD THE RITE LONGER","err");return;}
+  const x=new Float32Array(total);let off=0;
+  for(const c of m.chunks){x.set(c,off);off+=c.length;}
+  setStatus("PARSING THE MACHINE-SONG…","on");
+  setTimeout(()=>{showDecoded(decodeSamples(x,AC.sampleRate));},30);
+}
+listenBtn.addEventListener("click",()=>{mic?stopListen():startListen();});
+
+relicBtn.addEventListener("click",()=>{relicFile.click();});
+relicFile.addEventListener("change",async()=>{
+  const f=relicFile.files&&relicFile.files[0];
+  relicFile.value="";
+  if(!f)return;
+  try{
+    setStatus("READING THE RELIC…","on");
+    ensureAC();
+    const ab=await f.arrayBuffer();
+    const buf=await new Promise((res,rej)=>{
+      const p=AC.decodeAudioData(ab,res,rej);
+      if(p&&p.then)p.then(res,rej);
+    });
+    showDecoded(decodeSamples(buf.getChannelData(0),buf.sampleRate));
+  }catch(e){setStatus("RELIC UNREADABLE — IS IT A VOX-CAST .WAV?","err");}
+});
+
+/* ---------------- ARCHIVUM ---------------- */
+archBtn.addEventListener("click",()=>{arch.classList.add("open");});
+archClose.addEventListener("click",()=>{arch.classList.remove("open");});
+
+/* ---------------- BOOT ---------------- */
 const BOOT=["RITE OF ACTIVATION…","MACHINE SPIRIT: APPEASED","AWAITING INPUT"];
 BOOT.forEach((line,i)=>setTimeout(()=>setStatus(line,i===2?"":"on"),450*i));
 
-// ---------- test hooks (harmless in normal use) ----------
-window.__test={buildTimeline,renderOffline,
+/* ---------------- TEST HOOKS (harmless in normal use) ---------------- */
+window.__test={buildTimeline,renderOffline,decodeSamples,
   peak:async(text,m,corr)=>{const b=await renderOffline(text,m,corr);
     const d=b.getChannelData(0);let p=0;for(let i=0;i<d.length;i+=7)p=Math.max(p,Math.abs(d[i]));
-    return {dur:b.duration,peak:p};}};
+    return {dur:b.duration,peak:p};},
+  loopback:async(text,m,corr)=>{const b=await renderOffline(text,m,corr);
+    return decodeSamples(b.getChannelData(0),b.sampleRate);},
+  wavRoundtrip:async(text,corr)=>{
+    const b=await renderOffline(text,"screech",corr);
+    const ab=await bufferToWav(b).arrayBuffer();
+    const dv=new DataView(ab),sr=dv.getUint32(24,true),n=dv.getUint32(40,true)/2;
+    const xs=new Float32Array(n);
+    for(let i=0;i<n;i++)xs[i]=dv.getInt16(44+i*2,true)/32768;
+    return decodeSamples(xs,sr);}};
 </script>
 </body>
 </html>
