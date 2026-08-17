@@ -317,7 +317,7 @@
 
 /* ---------------- CONFIG ---------------- */
 // ⚙ BUMP THESE TWO LINES EVERY RELEASE — they feed every version display
-const VERSION="MK III.3";
+const VERSION="MK III.4";
 const CONSECRATED="2026.08.17";
 const F0=2080,F1=3260,BIT=0.016,PRE=16;
 const SCALE=[73.42,87.31,98.00,110.00,130.81,146.83]; // D2 F2 G2 A2 C3 D3
@@ -951,16 +951,26 @@ async function startListen(){
     return;
   }
   try{
-    enablePlaybackSession();
-    // a FRESH context per mic session: iOS switches the hardware sample rate
-    // when the mic engages, and a stale context records silence or garble
-    if(micAC){try{micAC.close();}catch(e){}micAC=null;}
-    micAC=new (window.AudioContext||window.webkitAudioContext)();
-    unlock(micAC);
-    if(micAC.state!=="running"){try{await micAC.resume();}catch(e){}}
+    // 1. ask iOS for a RECORD-capable session (playback-only fights the mic)
+    try{if(navigator.audioSession)navigator.audioSession.type="play-and-record";}catch(e){}
+    // 2. open the microphone FIRST — this is when iOS switches the hardware
+    //    route/sample-rate, so the context must be created AFTER, not before
     const stream=await navigator.mediaDevices.getUserMedia({
       audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    const src=micAC.createMediaStreamSource(stream);
+    // 3. now build a context that matches the live mic route; retry with
+    //    explicit rates if WebKit still reports a mismatch (InvalidStateError)
+    if(micAC){try{micAC.close();}catch(e){}micAC=null;}
+    let src=null,lastErr=null;
+    for(const rate of [undefined,48000,44100]){
+      let ctx=null;
+      try{
+        ctx=new (window.AudioContext||window.webkitAudioContext)(rate?{sampleRate:rate}:undefined);
+        if(ctx.state!=="running"){try{await ctx.resume();}catch(e){}}
+        src=ctx.createMediaStreamSource(stream);
+        micAC=ctx;break;
+      }catch(e){lastErr=e;if(ctx){try{ctx.close();}catch(e2){}}}
+    }
+    if(!micAC||!src){try{stream.getTracks().forEach(t=>t.stop());}catch(e){}throw lastErr||new Error("no context");}
     const proc=micAC.createScriptProcessor(4096,1,1);
     const mute=micAC.createGain();mute.gain.value=0;
     micAnalyser=micAC.createAnalyser();micAnalyser.fftSize=512;
@@ -982,6 +992,7 @@ async function startListen(){
     },500);
     setStatus("RECEIVING… 0s — LET THE SCREECH SOUND","on");
   }catch(e){
+    try{if(navigator.audioSession)navigator.audioSession.type="playback";}catch(e2){}
     setStatus(e&&e.name==="NotAllowedError"?"MIC RITE REFUSED — ALLOW MICROPHONE"
       :("LISTENING RITE FAILED: "+((e&&e.name)||"?")).slice(0,52),"err");
   }
@@ -995,6 +1006,7 @@ function stopListen(){
   const sr=micAC?micAC.sampleRate:44100;
   micAnalyser=null;
   if(micAC){try{micAC.close();}catch(e){}micAC=null;}
+  enablePlaybackSession(); // restore silent-switch immunity for transmissions
   handOffViz();
   listenBtn.textContent="◉ LISTEN";listenBtn.classList.remove("live");listenBtn.classList.add("ready");
   const total=m.chunks.reduce((s,c)=>s+c.length,0);
